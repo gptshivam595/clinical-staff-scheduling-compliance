@@ -456,6 +456,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addToast('info', 'Scenario Loaded: Test F (Shift Swap Protection)', 'Testing shift swap guardrail with replacement employee verification.');
         break;
 
+      case 'TEST_G': // Credential update and revalidation
+        setSelectedEmployeeId('CP-002');
+        setActiveTab('staff');
+        addToast('info', 'Scenario Loaded: Test G (Credential Update)', 'Opened Rohan Verma (CP-002). Click "Update Credential" on BLS to verify immediate re-evaluation.');
+        break;
+
+      case 'TEST_H': // Stale result protection
+        setAssignShiftPrefill({ employeeId: 'CP-001', shiftDate: '2026-10-19' });
+        setActiveTab('assign');
+        addToast('info', 'Scenario Loaded: Test H (Stale Result Protection)', 'Loaded Ananya Sharma on 19 Oct. Check eligibility, then modify the date to observe stale invalidation.');
+        break;
+
+      case 'TEST_I': // Workforce reconciliation & filters
+        setActiveTab('overview');
+        addToast('info', 'Scenario Loaded: Test I (Workforce Reconciliation)', 'Navigated to Overview. All 6 staff records are accounted for and reconciled.');
+        break;
+
+      case 'TEST_J': // Persistence and reset
+        setActiveTab('overview');
+        addToast('info', 'Scenario Loaded: Test J (Persistence & Reset)', 'Active data is saved in localStorage. Use "Reset Demo Data" to restore initial baseline.');
+        break;
+
       default:
         break;
     }

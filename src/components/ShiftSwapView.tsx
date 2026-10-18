@@ -71,10 +71,30 @@ export const ShiftSwapView: React.FC = () => {
     setSwapSuccess(false);
   };
 
-  const handleConfirmSwap = () => {
-    if (!evaluationResult || !evaluationResult.isEligible || isStale || !targetAssignment) return;
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  const handleConfirmSwap = () => {
+    if (isSubmitting || !targetAssignment || !replacementEmployee) return;
+
+    // Real-time confirmation revalidation for the replacement employee
+    const freshEval = evaluateEmployee(
+      replacementEmployee.id,
+      targetAssignment.shiftDate,
+      targetAssignment.station,
+      targetAssignment.startTime,
+      targetAssignment.endTime
+    );
+
+    if (!freshEval || !freshEval.isEligible) {
+      setEvaluationResult(freshEval);
+      setIsStale(false);
+      return;
+    }
+
+    setIsSubmitting(true);
     const outcome = processSwap(targetAssignment.id, replacementEmployee.id);
+    setIsSubmitting(false);
+
     if (outcome.success) {
       setSwapSuccess(true);
     }

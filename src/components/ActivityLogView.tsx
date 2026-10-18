@@ -15,6 +15,7 @@ import {
   Clock,
   ArrowLeftRight,
   Edit3,
+  Info,
 } from 'lucide-react';
 
 export const ActivityLogView: React.FC = () => {
@@ -53,12 +54,16 @@ export const ActivityLogView: React.FC = () => {
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Compliance Activity Log
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Tamper-evident record of scheduling attempts, guardrail blocks, confirmations, and credential record changes.
+          <p className="text-sm text-slate-600 mt-1 font-medium">
+            Prototype Activity Log — locally recorded events.
           </p>
+          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-[11px] text-slate-500 border border-slate-200">
+            <Info className="w-3.5 h-3.5 text-slate-400" />
+            <span>Events are recorded locally in browser storage for demonstration and case-study evaluation.</span>
+          </div>
         </div>
 
-        <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 w-fit">
+        <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 w-fit self-start sm:self-center">
           {activities.length} Recorded Events
         </span>
       </div>
@@ -83,8 +88,8 @@ export const ActivityLogView: React.FC = () => {
             className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold focus:outline-hidden"
           >
             <option value="ALL">All Outcomes</option>
-            <option value="SUCCESS">Success / Confirmed</option>
-            <option value="BLOCKED">Blocked by CareVerify</option>
+            <option value="SUCCESS">Confirmed / Success</option>
+            <option value="BLOCKED">Blocked by Guardrail</option>
             <option value="WARNING">Warnings / Incomplete</option>
             <option value="INFO">Updates & Resets</option>
           </select>

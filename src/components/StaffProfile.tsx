@@ -111,13 +111,30 @@ export const StaffProfile: React.FC = () => {
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       {/* Top back navigation & quick actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-xs hover:bg-slate-50 transition-colors w-fit"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Staff Overview</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-xs hover:bg-slate-50 transition-colors w-fit"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Staff Overview</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-medium hidden sm:inline">Switch Staff:</span>
+            <select
+              value={employee.id}
+              onChange={e => setSelectedEmployeeId(e.target.value)}
+              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 shadow-xs focus:ring-2 focus:ring-teal-500 focus:outline-hidden cursor-pointer"
+            >
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name} ({emp.id}) — {emp.role}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="flex items-center gap-3">
           <button
@@ -187,10 +204,15 @@ export const StaffProfile: React.FC = () => {
                 <ShieldAlert className="w-4 h-4 text-rose-600" />
                 <span>Blocked: Expired Credential</span>
               </div>
-            ) : (
+            ) : evaluation.overallOutcome === 'NEEDS_REVIEW' ? (
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs">
-                <ShieldAlert className="w-4 h-4 text-amber-600" />
-                <span>Blocked: Unverified / Missing</span>
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span>Blocked: Pending Review</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-rose-100 text-rose-800 border border-rose-300 font-bold text-xs">
+                <ShieldAlert className="w-4 h-4 text-rose-600" />
+                <span>Blocked: Missing Record</span>
               </div>
             )}
             <p className="text-[11px] text-slate-500 mt-1.5 max-w-xs leading-snug">
@@ -198,6 +220,12 @@ export const StaffProfile: React.FC = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Demo Disclosure Banner */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+        <span>Fictional Demonstration Profile: Credential documents and statuses are simulated for case study demonstration.</span>
+        <span className="font-semibold text-slate-700">CarePoint Clinics Demo Roster</span>
       </div>
 
       {/* Role Compliance Requirements & Credentials List */}
@@ -329,7 +357,7 @@ export const StaffProfile: React.FC = () => {
                     {/* Verification Note */}
                     {cred.verificationNote && (
                       <div className="text-[11px] bg-white border border-slate-200 rounded-lg p-2.5 text-slate-600 mt-2">
-                        <span className="font-semibold text-slate-700">Audit Note: </span>
+                        <span className="font-semibold text-slate-700">Compliance Record Note: </span>
                         {cred.verificationNote}
                         <span className="text-slate-400 ml-2">
                           (Updated {cred.lastUpdated})

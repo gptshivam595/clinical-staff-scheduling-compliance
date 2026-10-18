@@ -37,7 +37,11 @@ export interface Employee {
   avatarBg: string;
 }
 
-export type ValidationOutcome = 'ELIGIBLE' | 'BLOCKED_EXPIRED' | 'UNABLE_TO_VERIFY';
+export type ValidationOutcome =
+  | 'ELIGIBLE'
+  | 'BLOCKED_EXPIRED'
+  | 'UNABLE_TO_VERIFY'
+  | 'NEEDS_REVIEW';
 
 export interface CredentialCheckResult {
   credentialType: CredentialType;
@@ -48,7 +52,7 @@ export interface CredentialCheckResult {
   issueDate: string | null;
   message: string;
   reason?: string;
-  isExpiringSoon?: boolean; // Expiring within 30 days
+  isExpiringSoon?: boolean; // Expiring within 30 days of reference date
 }
 
 export interface EligibilityEvaluation {
@@ -66,6 +70,7 @@ export interface EligibilityEvaluation {
   overallReason: string;
   evaluatedAt: string;
   hasExpiringSoonWarning: boolean;
+  requiresReview: boolean;
 }
 
 export interface ShiftAssignment {

@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Clock,
   Sparkles,
+  HelpCircle,
+  Building2,
 } from 'lucide-react';
 import { formatDisplayDate, isExpiredForShift, isExpiringSoon } from '../utils/dateUtils';
 import { evaluateEligibility } from '../utils/validationEngine';
@@ -26,6 +28,7 @@ export const CredentialOverview: React.FC = () => {
     setActiveTab,
     setSelectedEmployeeId,
     setAssignShiftPrefill,
+    runPresetScenario,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,23 +37,30 @@ export const CredentialOverview: React.FC = () => {
   const [credentialFilter, setCredentialFilter] = useState<'ALL' | 'EXPIRED' | 'MISSING' | 'PENDING'>('ALL');
 
   // Compute live KPI cards dynamically from current state and demo reference date
+  // Fully reconciles with all staff records in state!
   const kpiData = useMemo(() => {
     const totalStaff = employees.length;
 
     let eligibleStaff = 0;
+    let blockedStaff = 0;
     let expiredCredentials = 0;
     let missingRecords = 0;
+    let pendingVerification = 0;
 
     employees.forEach(emp => {
       // Evaluate readiness for the demo reference date
       const evaluation = evaluateEligibility(emp, demoDate, 'ICU', '08:00', '16:30', demoDate);
       if (evaluation.isEligible) {
         eligibleStaff++;
+      } else {
+        blockedStaff++;
       }
 
       emp.credentials.forEach(cred => {
         if (cred.verificationStatus === 'MISSING') {
           missingRecords++;
+        } else if (cred.verificationStatus === 'PENDING') {
+          pendingVerification++;
         }
         if (cred.expiryDate && isExpiredForShift(cred.expiryDate, demoDate)) {
           expiredCredentials++;
@@ -61,8 +71,10 @@ export const CredentialOverview: React.FC = () => {
     return {
       totalStaff,
       eligibleStaff,
+      blockedStaff,
       expiredCredentials,
       missingRecords,
+      pendingVerification,
     };
   }, [employees, demoDate]);
 
@@ -133,16 +145,17 @@ export const CredentialOverview: React.FC = () => {
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-700 mb-1">
             <ShieldCheck className="w-4 h-4" />
             <span>Shiftwell CareVerify</span>
+            <span className="text-slate-400 font-normal">| Fictional Demo Environment</span>
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Credential Overview
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Monitor staff readiness and prevent scheduling with invalid credentials.
+            Monitor staff readiness and prevent clinical scheduling with expired, missing, or unverified credentials.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:items-end gap-1.5">
           <button
             onClick={() => {
               setAssignShiftPrefill(null);
@@ -153,74 +166,114 @@ export const CredentialOverview: React.FC = () => {
             <CalendarPlus className="w-4 h-4" />
             <span>Assign Shift</span>
           </button>
+          {/* Unobtrusive helper line for first-time reviewers */}
+          <p className="text-xs text-slate-500 font-normal">
+            New here?{' '}
+            <button
+              onClick={() => runPresetScenario('TEST_A')}
+              className="text-teal-700 hover:text-teal-800 font-medium underline underline-offset-2 decoration-teal-300 hover:decoration-teal-600 transition-colors cursor-pointer"
+            >
+              Try a sample scenario
+            </button>{' '}
+            to see how credential checks work.
+          </p>
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Summary Cards - Fully Reconciled */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Total Staff */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
               Total Staff
             </span>
-            <div className="text-2xl font-extrabold text-slate-900 mt-1">
+            <div className="text-2xl font-extrabold text-slate-900 mt-0.5">
               {kpiData.totalStaff}
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Clinical workforce in system</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Tracked in prototype</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
             <Users className="w-5 h-5" />
           </div>
         </div>
 
         {/* Eligible Staff */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
               Eligible Staff
             </span>
-            <div className="text-2xl font-extrabold text-emerald-700 mt-1">
+            <div className="text-2xl font-extrabold text-emerald-700 mt-0.5">
               {kpiData.eligibleStaff}
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Verified on {formatDisplayDate(demoDate)}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Active for {formatDisplayDate(demoDate)}</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
         {/* Expired Credentials */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-rose-700">
-              Expired Credentials
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">
+              Expired
             </span>
-            <div className="text-2xl font-extrabold text-rose-700 mt-1">
+            <div className="text-2xl font-extrabold text-rose-700 mt-0.5">
               {kpiData.expiredCredentials}
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Strictly blocked from roster</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Strictly blocked</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
             <AlertOctagon className="w-5 h-5" />
           </div>
         </div>
 
         {/* Missing Records */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">
               Missing Records
             </span>
-            <div className="text-2xl font-extrabold text-amber-700 mt-1">
+            <div className="text-2xl font-extrabold text-rose-700 mt-0.5">
               {kpiData.missingRecords}
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">Mandatory documents absent</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Document absent</p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
             <FileQuestion className="w-5 h-5" />
           </div>
         </div>
+
+        {/* Pending Review */}
+        <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
+              Pending Review
+            </span>
+            <div className="text-2xl font-extrabold text-amber-700 mt-0.5">
+              {kpiData.pendingVerification}
+            </div>
+            <p className="text-[10px] text-slate-500 mt-0.5">Awaiting sign-off</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Workforce Reconciliation Banner */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-slate-800">Workforce Status Reconciliation:</span>
+          <span>
+            {kpiData.eligibleStaff} Eligible + {kpiData.blockedStaff} Ineligible ({kpiData.expiredCredentials} Expired, {kpiData.missingRecords} Missing, {kpiData.pendingVerification} Pending) = {kpiData.totalStaff} Total Staff
+          </span>
+        </div>
+        <span className="text-[11px] text-slate-500">
+          Evaluated as of reference date: <strong className="text-slate-700">{formatDisplayDate(demoDate)}</strong>
+        </span>
       </div>
 
       {/* Filter & Search Bar */}
@@ -257,8 +310,8 @@ export const CredentialOverview: React.FC = () => {
             className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-hidden"
           >
             <option value="ALL">All Readiness</option>
-            <option value="ELIGIBLE">Eligible Only</option>
-            <option value="BLOCKED">Blocked / Ineligible</option>
+            <option value="ELIGIBLE">Eligible Only ({kpiData.eligibleStaff})</option>
+            <option value="BLOCKED">Blocked Only ({kpiData.blockedStaff})</option>
           </select>
 
           {/* Credential Status */}
@@ -348,7 +401,7 @@ export const CredentialOverview: React.FC = () => {
                     } else if (bls.verificationStatus === 'PENDING') {
                       blsBadge = (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                          <Clock className="w-3 h-3" /> Pending
+                          <Clock className="w-3 h-3" /> Pending Review
                         </span>
                       );
                     } else if (bls.expiryDate && isExpiredForShift(bls.expiryDate, demoDate)) {
@@ -384,7 +437,7 @@ export const CredentialOverview: React.FC = () => {
                     } else if (nsc.verificationStatus === 'PENDING') {
                       nscBadge = (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                          <Clock className="w-3 h-3" /> Pending
+                          <Clock className="w-3 h-3" /> Pending Review
                         </span>
                       );
                     } else if (nsc.expiryDate && isExpiredForShift(nsc.expiryDate, demoDate)) {
@@ -465,10 +518,15 @@ export const CredentialOverview: React.FC = () => {
                             <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                             Blocked (Expired)
                           </span>
-                        ) : (
+                        ) : evaluation.overallOutcome === 'NEEDS_REVIEW' ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                            Blocked (Unverified)
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            Pending Review
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
+                            <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                            Blocked (Missing)
                           </span>
                         )}
                       </td>

@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Eye,
   Edit3,
+  HelpCircle,
 } from 'lucide-react';
 import { formatDisplayDate } from '../utils/dateUtils';
 import { EligibilityEvaluation } from '../types';
@@ -32,6 +33,7 @@ export const AssignShift: React.FC = () => {
     setAssignShiftPrefill,
     addAssignment,
     evaluateEmployee,
+    addToast,
   } = useApp();
 
   // Form State
@@ -67,7 +69,7 @@ export const AssignShift: React.FC = () => {
     }
   }, [assignShiftPrefill]);
 
-  // Selected employee record
+  // Selected employee record from active state
   const currentEmployee = employees.find(e => e.id === selectedEmpId) || employees[0];
 
   // Whenever inputs change after a check, mark previous evaluation as stale
@@ -102,16 +104,45 @@ export const AssignShift: React.FC = () => {
       return;
     }
 
-    // Evaluate
+    // Evaluate deterministically
     const result = evaluateEmployee(selectedEmpId, shiftDate, station, startTime, endTime);
     setEvaluationResult(result);
     setIsStale(false);
   };
 
-  // Confirm Assignment
+  // Priority One: Confirmation-time revalidation
   const handleConfirmAssignment = () => {
-    if (!evaluationResult || !evaluationResult.isEligible || isStale) return;
+    if (isSubmitting) return; // Prevent double-click duplicates
 
+    // 1. Re-read current staff & credential details from state
+    const latestEmployee = employees.find(e => e.id === selectedEmpId);
+    if (!latestEmployee) {
+      addToast('error', 'Employee Not Found', 'The selected staff member record no longer exists.');
+      return;
+    }
+
+    // 2. Perform real-time confirmation revalidation
+    const freshEvaluation = evaluateEmployee(
+      selectedEmpId,
+      shiftDate,
+      station,
+      startTime,
+      endTime
+    );
+
+    if (!freshEvaluation || !freshEvaluation.isEligible) {
+      // Confirmation BLOCKED: record failure in state & activity log
+      setEvaluationResult(freshEvaluation);
+      setIsStale(false);
+      addToast(
+        'error',
+        'Confirmation Blocked by CareVerify',
+        freshEvaluation ? freshEvaluation.overallReason : 'Eligibility check failed on confirmation revalidation.'
+      );
+      return;
+    }
+
+    // 3. Confirm only if all required checks pass
     setIsSubmitting(true);
     const outcome = addAssignment({
       employeeId: selectedEmpId,
@@ -162,8 +193,94 @@ export const AssignShift: React.FC = () => {
           Assign Shift
         </h1>
         <p className="text-sm text-slate-600 mt-1">
-          Verify mandatory credentials before confirming a staff assignment.
+          Verify mandatory staff credentials against the selected shift date before allowing an assignment.
         </p>
+      </div>
+
+      {/* Visual Workflow Progression Tracker */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          {/* Step 1 */}
+          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="w-5 h-5 rounded-full bg-slate-800 text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+              1
+            </span>
+            <div>
+              <span className="font-bold text-slate-900 block leading-tight">Shift Parameters</span>
+              <span className="text-[10px] text-slate-500">Staff, date, times & station</span>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div
+            className={`flex items-center gap-2.5 p-2 rounded-xl border ${
+              !evaluationResult
+                ? 'bg-white border-slate-200 text-slate-400'
+                : evaluationResult.isEligible && !isStale
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                : 'bg-rose-50 border-rose-200 text-rose-950'
+            }`}
+          >
+            <span
+              className={`w-5 h-5 rounded-full font-bold text-[11px] flex items-center justify-center shrink-0 ${
+                !evaluationResult
+                  ? 'bg-slate-200 text-slate-600'
+                  : evaluationResult.isEligible && !isStale
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-rose-600 text-white'
+              }`}
+            >
+              2
+            </span>
+            <div>
+              <span className="font-bold block leading-tight">
+                {!evaluationResult
+                  ? 'Eligibility Check'
+                  : evaluationResult.isEligible && !isStale
+                  ? 'Eligible (Passed)'
+                  : 'Blocked by Guardrail'}
+              </span>
+              <span className="text-[10px] opacity-80">
+                {!evaluationResult
+                  ? 'Pending manual run'
+                  : isStale
+                  ? 'Revalidation required'
+                  : 'Deterministic check'}
+              </span>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div
+            className={`flex items-center gap-2.5 p-2 rounded-xl border ${
+              confirmedSuccess
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                : evaluationResult?.isEligible && !isStale
+                ? 'bg-teal-50 border-teal-200 text-teal-950'
+                : 'bg-white border-slate-200 text-slate-400'
+            }`}
+          >
+            <span
+              className={`w-5 h-5 rounded-full font-bold text-[11px] flex items-center justify-center shrink-0 ${
+                confirmedSuccess
+                  ? 'bg-emerald-600 text-white'
+                  : evaluationResult?.isEligible && !isStale
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-slate-200 text-slate-600'
+              }`}
+            >
+              3
+            </span>
+            <div>
+              <span className="font-bold block leading-tight">
+                {confirmedSuccess ? 'Confirmed on Roster' : 'Confirmation Recheck'}
+              </span>
+              <span className="text-[10px] opacity-80">
+                {confirmedSuccess ? 'Logged to audit trail' : 'Revalidates before commit'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Success Banner if just confirmed */}
@@ -202,7 +319,7 @@ export const AssignShift: React.FC = () => {
         <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              1. Shift Parameters
+              Shift Parameters
             </h2>
             <button
               type="button"
@@ -341,34 +458,36 @@ export const AssignShift: React.FC = () => {
 
         {/* Right: Screen 4 - Eligibility Result View */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between min-h-[460px]">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between min-h-[480px]">
             <div>
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  2. Eligibility Evaluation
+                  Eligibility Evaluation
                 </h2>
-                <span className="text-[11px] font-semibold text-slate-400">
-                  Real-time Guardrail
+                <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+                  Deterministic Engine
                 </span>
               </div>
 
-              {/* Notice if parameters changed */}
+              {/* Notice if parameters changed after validation */}
               {isStale && evaluationResult && (
                 <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    Shift parameters changed. Click <strong>Check Credential Eligibility</strong> to revalidate.
+                    Shift parameters were modified. Please click <strong>Check Credential Eligibility</strong> to revalidate.
                   </span>
                 </div>
               )}
 
+              {/* State 1: Not Checked */}
               {!evaluationResult ? (
                 <div className="py-12 px-4 text-center">
-                  <div className="w-12 h-12 rounded-full bg-teal-50 border border-teal-100 text-teal-600 flex items-center justify-center mx-auto mb-3">
-                    <ShieldCheck className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center mx-auto mb-3">
+                    <HelpCircle className="w-6 h-6" />
                   </div>
                   <h3 className="text-sm font-bold text-slate-800">
-                    Awaiting Eligibility Check
+                    Not Checked — Awaiting Validation
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
                     Shiftwell CareVerify will inspect {currentEmployee?.name}'s mandatory certificates against {formatDisplayDate(shiftDate)} before allowing scheduling.
@@ -381,6 +500,7 @@ export const AssignShift: React.FC = () => {
                   </button>
                 </div>
               ) : (
+                /* State 2 & 3: Evaluated Outcome */
                 <div className="space-y-4">
                   {/* Outcome Banner */}
                   {evaluationResult.overallOutcome === 'ELIGIBLE' ? (
@@ -407,15 +527,27 @@ export const AssignShift: React.FC = () => {
                         {evaluationResult.overallReason}
                       </p>
                     </div>
-                  ) : (
+                  ) : evaluationResult.overallOutcome === 'NEEDS_REVIEW' ? (
                     <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-950">
                       <div className="flex items-center gap-2 mb-1">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                        <Clock className="w-5 h-5 text-amber-600 shrink-0" />
                         <span className="font-extrabold text-sm uppercase tracking-wide text-amber-900">
-                          Unable to Verify Eligibility
+                          Blocked: Verification Pending Review
                         </span>
                       </div>
                       <p className="text-xs text-amber-800 leading-relaxed">
+                        {evaluationResult.overallReason}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-950">
+                      <div className="flex items-center gap-2 mb-1">
+                        <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                        <span className="font-extrabold text-sm uppercase tracking-wide text-rose-900">
+                          Assignment Blocked: Incomplete Records
+                        </span>
+                      </div>
+                      <p className="text-xs text-rose-800 leading-relaxed">
                         {evaluationResult.overallReason}
                       </p>
                     </div>
@@ -505,7 +637,9 @@ export const AssignShift: React.FC = () => {
                       <span>Confirm Assignment (Blocked)</span>
                     </button>
                     <p className="text-[11px] text-center text-slate-500">
-                      CareVerify invariant: No scheduling with expired, missing, or unverified records.
+                      {isStale
+                        ? 'Re-evaluate modified parameters before confirmation.'
+                        : 'CareVerify invariant: No scheduling with expired, missing, or unverified records.'}
                     </p>
                   </div>
                 )}

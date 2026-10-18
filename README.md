@@ -242,7 +242,8 @@ flowchart TD
     │   └── initialData.ts   # Baseline fictional CarePoint Clinics staff & shift dataset
     ├── utils/
     │   ├── dateUtils.ts     # Timezone-safe calendar math, formatting, and boundary helpers
-    │   └── validationEngine.ts # Deterministic credential compliance validation engine
+    │   ├── validationEngine.ts # Deterministic credential compliance validation engine
+    │   └── validationEngine.test.ts # Automated unit test suite (27 test assertions)
     └── components/
         ├── Header.tsx       # Top bar with CarePoint label, location picker & ref date
         ├── Sidebar.tsx      # Brand identity, navigation links & active status badge
@@ -302,9 +303,10 @@ These scripts are defined in `package.json`:
 | `npm run build` | Compiles TypeScript and builds production assets into `dist/` (`vite build`) |
 | `npm run preview` | Previews the production build locally (`vite preview`) |
 | `npm run lint` | Runs TypeScript type checking without emitting files (`tsc --noEmit`) |
+| `npm test` | Executes automated compliance validation tests (`tsx src/utils/validationEngine.test.ts`) |
 | `npm run clean` | Removes build output directories (`rm -rf dist server.js`) |
 
-*(Note: There is no separate automated test runner script such as Jest or Vitest in `package.json`. Comprehensive functional testing is provided via the in-app interactive scenario harness and strict TypeScript type checking.)*
+*(Note: In addition to the automated unit test suite (`npm test`), interactive end-to-end scenario verification is accessible via the built-in Scenarios modal.)*
 
 ### Environment Variables
 
