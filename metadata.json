@@ -1,0 +1,6 @@
+{
+  "name": "Shiftwell CareVerify",
+  "description": "Healthcare Credential Verification & Safe Scheduling prototype built for CarePoint Clinics as part of the Shiftwell product ecosystem.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
